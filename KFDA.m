@@ -1,5 +1,5 @@
 classdef KFDA
-    
+
     properties
         trainData
         trainClass
@@ -17,7 +17,7 @@ classdef KFDA
         covInv
         covDet
     end
-    
+
     methods
         function obj = KFDA(X, Y, order, regParam, priors)
             %% Kernel Fisher Discriminant Analysis
@@ -36,10 +36,10 @@ classdef KFDA
             % a class and each value coresponding to the prior probability
             % associated with this class. Default value is the empirical
             % probability: number of obs in a class / total number of obs
-            
+
             assert(size(Y, 2) == 1)
             assert(size(Y, 1) == size(X, 1))
-            
+
             obj.trainData = X;
             obj.trainClass = Y;
             obj.order = order;
@@ -88,7 +88,7 @@ classdef KFDA
                 MuQ{classId} = K * classVecsTrain(:, classId) ./ obj.nObsPerClas(classId);
                 Mu = Mu + MuQ{classId};
             end
-            Mu = Mu ./ obj.nClasses;%Just the mean of the class-means (or centroids)
+            Mu = Mu ./ obj.nClasses; %Just the mean of the class-means (or centroids)
 
             % Again, see e.g. Scholkopf & Smola 02 ch 14 for justification of the next
             % step. M will represent the "dual" mean-differences (numerator in the FD ration)
@@ -105,9 +105,9 @@ classdef KFDA
 
             % Regularizing
             mK = abs(mean(K(:)));
-            if verbose, disp(['Mean K is ',num2str(mK)]), end
+            if verbose, disp(['Mean K is ', num2str(mK)]), end
 
-            C = regParam * mK;% The value of 'C' is such that the maximum eigenvector
+            C = regParam * mK; % The value of 'C' is such that the maximum eigenvector
             %         is proportional to alpha. This is taken as a stable solution.
             %         This value seems ok. C cannot be much smaller than
             %         0.01*mean(mean(K))in MSUA-like data. The bigger, the worse
@@ -138,7 +138,7 @@ classdef KFDA
                 title('Projected points from the training data')
                 hold off
             end
-            
+
             % Reduced projected data to a dimensionality of obj.nClasses - 1,
             % sufficient for separation of the points in obj.nClasses
             redProjData = struct();
@@ -185,22 +185,22 @@ classdef KFDA
                 factor = (2 * pi) ^ (-(obj.nClasses - 1) / 2) * (obj.covDet.(clas) ^ -0.5);
                 obj.likelihoodFuns.(clas) = @(x) factor * exp(-0.5 * (x - obj.means.(clas)) * obj.covInv.(clas) * (x - obj.means.(clas))');
             end
-            
+
         end
-        
+
         function [results, resPerClass] = predict(obj, X, Y)
             %% Predict the class of new data
             % Arguments are the same as the X and Y in the constructor
             % function
-            
+
             % Checking arguments
-            
+
             assert(size(X, 1) == size(Y, 1))
             [nObsTest, nFeaturesTest] = size(X);
             if obj.nFeatures ~= nFeaturesTest
                 error('The number of features must be constant across classes and train/test data')
             end
-            
+
             classVecsTest = nan(nObsTest, obj.nClasses);
             Yid = nan(nObsTest, 1);
             for classId = 1:obj.nClasses
@@ -209,14 +209,14 @@ classdef KFDA
                 Yid(logical(classVecsTest(:, classId))) = classId;
             end
             clear classData
-            
+
             %% Computing the test kernel matrix
             K2 = multinomial_kernel(obj.trainData, X, obj.order);
             K2 = K2 ./ obj.nObservations;
-            
-            %% Projecting data on the discriminant axes
+
+            %% Projecting data onto the discriminant axes
             rpdTest = K2 * obj.V(:, 1 : obj.nClasses - 1); % Reduced projected data test
-            
+
             %% Retrieving the likelihood of each test point
             likelihoods = zeros(nObsTest, obj.nClasses);
             posteriors = zeros(nObsTest, obj.nClasses);
@@ -228,17 +228,17 @@ classdef KFDA
                 end
                 posteriors(patternId, :) = likelihoods(patternId,:) .* obj.priors ./ sum(likelihoods(patternId,:) .* obj.priors);
             end
-            
+
             %% Predicting the class of each data point
             [~, predictedClassId] = max(posteriors,[],2);
-            
+
             predictedClass = {nObsTest, 1};
             for classId = 1 : obj.nClasses
                 clas = obj.classes{classId};
                 [predictedClass{predictedClassId == classId}] = deal(clas);
             end
             predictedClass = predictedClass';
-            
+
             %% Creating the output variables
             results = struct();
             results.likelihood = likelihoods;
@@ -246,7 +246,7 @@ classdef KFDA
             results.predictedClassId = predictedClassId;
             results.predictedClass = predictedClass;
             results.errors = results.predictedClassId ~= Yid;
-            
+
             if nargout > 1
                 resPerClass = struct();
                 for classId = 1 : obj.nClasses
@@ -259,31 +259,31 @@ classdef KFDA
                     resPerClass.errors.(clas) = results.errors(classVec, :);
                 end
             end
-            
+
         end
-        
+
 %         function formatedRes = format_results(results)
 %             nObsTest = length(results.errors.(obj.classes{1}));
-%             for 
+%             for
 %         end
-        
+
         function projData = project_data(obj, X, nDims)
             %% Project data on the discriminant axes
             % Arguments:
             % - X: same as in the constructor function
             % - nDims: integre, the number of dimensions on which the data
             % is going to be projected
-            
+
             K = multinomial_kernel(obj.trainData, X, obj.order);
             K = K ./ obj.nObservations;
             projData = K * obj.V(:, 1 : nDims);
         end
-        
+
         function KLdiv = KL_divergence(obj)
             %% Symmetrised Kullback - Leibler divergence
             % Returns a symmetrised version of the KL divergence between
             % each pair of class
-            
+
             for classId = 1 : obj.nClasses - 1
                 class0 = obj.classes{classId};
                 for otherClassId = classId + 1 : obj.nClasses
@@ -303,9 +303,7 @@ classdef KFDA
                 end
             end
         end
-        
+
     end
-    
+
 end
-
-
