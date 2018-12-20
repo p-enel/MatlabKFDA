@@ -1,5 +1,5 @@
 %% Example of how to use the KFDA class
-% The data generated here is doesn't have the best shape to demonstrate the
+% The data generated here doesn't have the best shape to demonstrate the
 % value of KFDA, but at least you have an example of how to use the class
 
 % First execute the first part of the code to train and test the model,
